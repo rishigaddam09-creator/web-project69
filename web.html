@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus AI Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .quick-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .quick-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            text-align: left;
+        }
+
+        .quick-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .chat-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(100vh - 200px);
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+
+        .message.bot .message-avatar {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 18px;
+            position: relative;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.bot .message-content {
+            background: #f8f9fa;
+            color: #333;
+            border: 1px solid #e9ecef;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            background: white;
+        }
+
+        .chat-input-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            outline: none;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 3px;
+        }
+
+        .typing-dot {
+            width: 4px;
+            height: 4px;
+            background: #666;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .info-card {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .info-card h3 {
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .info-card p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+            
+            .sidebar {
+                order: 2;
+            }
+            
+            .chat-container {
+                order: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>Quick Access</h2>
+            <div class="quick-buttons">
+                <button class="quick-btn" onclick="sendQuickMessage('What are today\'s dining hall hours?')">🍽 Dining Hours</button>
+                <button class="quick-btn" onclick="sendQuickMessage('Show me library hours and services')">📚 Library Info</button>
+                <button class="quick-btn" onclick="sendQuickMessage('Where can I find academic schedules?')">📅 Class Schedules</button>
+                <button class="quick-btn" onclick="sendQuickMessage('Tell me about campus facilities')">🏢 Facilities</button>
+                <button class="quick-btn" onclick="sendQuickMessage('How do I register for classes?')">📝 Registration</button>
+                <button class="quick-btn" onclick="sendQuickMessage('Campus map and directions')">🗺 Campus Map</button>
+                <button class="quick-btn" onclick="sendQuickMessage('Student services and support')">🎓 Student Services</button>
+                <button class="quick-btn" onclick="sendQuickMessage('Financial aid information')">💰 Financial Aid</button>
+            </div>
+            
+            <div class="info-card">
+                <h3>Campus Hours</h3>
+                <p>Main Office: 8 AM - 6 PM<br>
+                Library: 6 AM - 12 AM<br>
+                Dining: 7 AM - 10 PM</p>
+            </div>
+            
+            <div class="info-card">
+                <h3>Emergency Contact</h3>
+                <p>Campus Security:<br>(555) 123-4567</p>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-header">
+                <h1>🎓 Campus AI Assistant</h1>
+                <p>Your intelligent guide to campus life</p>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot">
+                    <div class="message-avatar">AI</div>
+                    <div class="message-content">
+                        <p>Welcome to Campus AI Assistant! 👋 I'm here to help you with:</p>
+                        <p>• 📅 Class schedules and academic calendar<br>
+                        • 🏢 Campus facilities and locations<br>
+                        • 🍽 Dining services and meal plans<br>
+                        • 📚 Library hours and resources<br>
+                        • 📝 Administrative procedures<br>
+                        • 🎓 Student services and support</p>
+                        <p>How can I assist you today?</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-input-container">
+                <form class="chat-input-form" onsubmit="sendMessage(event)">
+                    <input type="text" class="chat-input" id="messageInput" placeholder="Ask me about campus services, schedules, facilities..." required>
+                    <button type="submit" class="send-btn" id="sendBtn">Send</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Campus database simulation
+        const campusDatabase = {
+            schedules: {
+                academic_calendar: {
+                    fall_semester: "August 28 - December 15, 2025",
+                    spring_semester: "January 15 - May 10, 2026",
+                    summer_session: "May 20 - August 10, 2026",
+                    finals_week: "December 9-15 (Fall), May 4-10 (Spring)"
+                },
+                class_times: {
+                    period_1: "8:00 AM - 9:30 AM",
+                    period_2: "10:00 AM - 11:30 AM",
+                    period_3: "12:00 PM - 1:30 PM",
+                    period_4: "2:00 PM - 3:30 PM",
+                    period_5: "4:00 PM - 5:30 PM",
+                    evening: "6:00 PM - 9:00 PM"
+                }
+            },
+            dining: {
+                main_hall: {
+                    hours: "7:00 AM - 10:00 PM",
+                    breakfast: "7:00 AM - 10:30 AM",
+                    lunch: "11:30 AM - 3:00 PM",
+                    dinner: "5:00 PM - 9:00 PM"
+                },
+                student_union: {
+                    hours: "8:00 AM - 11:00 PM",
+                    food_court: "Multiple vendors available"
+                },
+                meal_plans: {
+                    unlimited: "$2,800/semester",
+                    19_meals: "$2,400/semester",
+                    14_meals: "$2,100/semester",
+                    10_meals: "$1,800/semester"
+                }
+            },
+            library: {
+                main_library: {
+                    hours: {
+                        weekdays: "6:00 AM - 12:00 AM",
+                        saturday: "8:00 AM - 10:00 PM",
+                        sunday: "10:00 AM - 12:00 AM"
+                    },
+                    services: [
+                        "Study rooms (bookable online)",
+                        "Computer lab with 50+ stations",
+                        "Research assistance desk",
+                        "Printing and scanning services",
+                        "Group study areas",
+                        "Silent study floors",
+                        "24/7 access during finals week"
+                    ]
+                },
+                science_library: {
+                    hours: "8:00 AM - 10:00 PM",
+                    special_collections: "Scientific journals and research databases"
+                }
+            },
+            facilities: {
+                academic_buildings: {
+                    "Science Hall": "Biology, Chemistry, Physics departments",
+                    "Liberal Arts Building": "English, History, Philosophy departments",
+                    "Business Center": "Business, Economics, Accounting programs",
+                    "Engineering Complex": "All engineering disciplines",
+                    "Student Union": "Dining, events, student organizations"
+                },
+                recreational: {
+                    "Fitness Center": "Open 5 AM - 11 PM, pool, courts, equipment",
+                    "Sports Complex": "Basketball, tennis, track and field",
+                    "Recreation Fields": "Soccer, baseball, intramural sports"
+                },
+                residence: {
+                    "North Hall": "Freshman dormitory, 400 beds",
+                    "South Complex": "Upper-class apartments, 600 beds",
+                    "Graduate Housing": "Family and graduate student housing"
+                }
+            },
+            administrative: {
+                registration: {
+                    process: "Online through student portal",
+                    dates: {
+                        fall: "April 1 - August 15",
+                        spring: "November 1 - January 10",
+                        summer: "March 1 - May 15"
+                    },
+                    requirements: [
+                        "Meet with academic advisor",
+                        "Clear any holds on account",
+                        "Pay tuition or set up payment plan",
+                        "Complete prerequisite courses"
+                    ]
+                },
+                financial_aid: {
+                    office_hours: "Monday-Friday 8 AM - 5 PM",
+                    services: [
+                        "FAFSA assistance",
+                        "Scholarship applications",
+                        "Work-study programs",
+                        "Emergency financial assistance",
+                        "Payment plan options"
+                    ],
+                    deadlines: {
+                        fafsa: "March 1 for priority consideration",
+                        scholarships: "February 15 annually"
+                    }
+                },
+                student_services: {
+                    counseling: "Mental health and wellness support",
+                    career_center: "Job placement and internship assistance",
+                    disability_services: "Accommodations and support",
+                    health_center: "Basic medical care and wellness programs",
+                    tutoring: "Free peer tutoring in most subjects"
+                }
+            }
+        };
+
+        let isTyping = false;
+
+        function sendQuickMessage(message) {
+            if (isTyping) return;
+            
+            const messageInput = document.getElementById('messageInput');
+            messageInput.value = message;
+            sendMessage(new Event('submit'));
+        }
+
+        function sendMessage(event) {
+            event.preventDefault();
+            
+            if (isTyping) return;
+            
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message) return;
+            
+            addMessage(message, 'user');
+            messageInput.value = '';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            // Generate AI response
+            setTimeout(() => {
+                const response = generateResponse(message);
+                hideTypingIndicator();
+                addMessage(response, 'bot');
+            }, Math.random() * 1000 + 500);
+        }
+
+        function addMessage(content, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = message ${sender};
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = sender === 'user' ? 'You' : 'AI';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = <p>${content}</p>;
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            if (isTyping) return;
+            isTyping = true;
+            
+            const chatMessages = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message bot typing-message';
+            typingDiv.id = 'typingIndicator';
+            
+            typingDiv.innerHTML = `
+                <div class="message-avatar">AI</div>
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <span>Thinking</span>
+                        <div class="typing-dots">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+        }
+
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+            isTyping = false;
+            
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = false;
+        }
+
+        function generateResponse(message) {
+            const msgLower = message.toLowerCase();
+            
+            // Dining queries
+            if (msgLower.includes('dining') || msgLower.includes('food') || msgLower.includes('meal') || msgLower.includes('eat')) {
+                return `🍽 <strong>Dining Information:</strong><br><br>
+                <strong>Main Dining Hall:</strong><br>
+                • Hours: ${campusDatabase.dining.main_hall.hours}<br>
+                • Breakfast: ${campusDatabase.dining.main_hall.breakfast}<br>
+                • Lunch: ${campusDatabase.dining.main_hall.lunch}<br>
+                • Dinner: ${campusDatabase.dining.main_hall.dinner}<br><br>
+                
+                <strong>Student Union Food Court:</strong><br>
+                • Hours: ${campusDatabase.dining.student_union.hours}<br>
+                • Features: ${campusDatabase.dining.student_union.food_court}<br><br>
+                
+                <strong>Meal Plan Options:</strong><br>
+                • Unlimited: ${campusDatabase.dining.meal_plans.unlimited}<br>
+                • 19 meals/week: ${campusDatabase.dining.meal_plans['19_meals']}<br>
+                • 14 meals/week: ${campusDatabase.dining.meal_plans['14_meals']}<br>
+                • 10 meals/week: ${campusDatabase.dining.meal_plans['10_meals']}`;
+            }
+            
+            // Library queries
+            if (msgLower.includes('library') || msgLower.includes('study') || msgLower.includes('book')) {
+                const services = campusDatabase.library.main_library.services.map(s => • ${s}).join('<br>');
+                return `📚 <strong>Library Services:</strong><br><br>
+                <strong>Main Library Hours:</strong><br>
+                • Weekdays: ${campusDatabase.library.main_library.hours.weekdays}<br>
+                • Saturday: ${campusDatabase.library.main_library.hours.saturday}<br>
+                • Sunday: ${campusDatabase.library.main_library.hours.sunday}<br><br>
+                
+                <strong>Available Services:</strong><br>
+                ${services}<br><br>
+                
+                <strong>Science Library:</strong><br>
+                • Hours: ${campusDatabase.library.science_library.hours}<br>
+                • ${campusDatabase.library.science_library.special_collections}`;
+            }
+            
+            // Schedule queries
+            if (msgLower.includes('schedule') || msgLower.includes('class') || msgLower.includes('academic') || msgLower.includes('semester')) {
+                return `📅 <strong>Academic Information:</strong><br><br>
+                <strong>Academic Calendar:</strong><br>
+                • Fall Semester: ${campusDatabase.schedules.academic_calendar.fall_semester}<br>
+                • Spring Semester: ${campusDatabase.schedules.academic_calendar.spring_semester}<br>
+                • Summer Session: ${campusDatabase.schedules.academic_calendar.summer_session}<br>
+                • Finals Week: ${campusDatabase.schedules.academic_calendar.finals_week}<br><br>
+                
+                <strong>Daily Class Periods:</strong><br>
+                • Period 1: ${campusDatabase.schedules.class_times.period_1}<br>
+                • Period 2: ${campusDatabase.schedules.class_times.period_2}<br>
+                • Period 3: ${campusDatabase.schedules.class_times.period_3}<br>
+                • Period 4: ${campusDatabase.schedules.class_times.period_4}<br>
+                • Period 5: ${campusDatabase.schedules.class_times.period_5}<br>
+                • Evening Classes: ${campusDatabase.schedules.class_times.evening}`;
+            }
+            
+            // Facilities queries
+            if (msgLower.includes('facilities') || msgLower.includes('building') || msgLower.includes('location') || msgLower.includes('where')) {
+                return `🏢 <strong>Campus Facilities:</strong><br><br>
+                <strong>Academic Buildings:</strong><br>
+                • Science Hall: ${campusDatabase.facilities.academic_buildings['Science Hall']}<br>
+                • Liberal Arts Building: ${campusDatabase.facilities.academic_buildings['Liberal Arts Building']}<br>
+                • Business Center: ${campusDatabase.facilities.academic_buildings['Business Center']}<br>
+                • Engineering Complex: ${campusDatabase.facilities.academic_buildings['Engineering Complex']}<br>
+                • Student Union: ${campusDatabase.facilities.academic_buildings['Student Union']}<br><br>
+                
+                <strong>Recreation:</strong><br>
+                • Fitness Center: ${campusDatabase.facilities.recreational['Fitness Center']}<br>
+                • Sports Complex: ${campusDatabase.facilities.recreational['Sports Complex']}<br>
+                • Recreation Fields: ${campusDatabase.facilities.recreational['Recreation Fields']}`;
+            }
+            
+            // Registration queries
+            if (msgLower.includes('register') || msgLower.includes('registration') || msgLower.includes('enroll')) {
+                const requirements = campusDatabase.administrative.registration.requirements.map(r => • ${r}).join('<br>');
+                return `📝 <strong>Registration Information:</strong><br><br>
+                <strong>Process:</strong> ${campusDatabase.administrative.registration.process}<br><br>
+                
+                <strong>Registration Dates:</strong><br>
+                • Fall: ${campusDatabase.administrative.registration.dates.fall}<br>
+                • Spring: ${campusDatabase.administrative.registration.dates.spring}<br>
+                • Summer: ${campusDatabase.administrative.registration.dates.summer}<br><br>
+                
+                <strong>Requirements:</strong><br>
+                ${requirements}`;
+            }
+            
+            // Financial aid queries
+            if (msgLower.includes('financial') || msgLower.includes('aid') || msgLower.includes('scholarship') || msgLower.includes('money')) {
+                const services = campusDatabase.administrative.financial_aid.services.map(s => • ${s}).join('<br>');
+                return `💰 <strong>Financial Aid Information:</strong><br><br>
+                <strong>Office Hours:</strong> ${campusDatabase.administrative.financial_aid.office_hours}<br><br>
+                
+                <strong>Services Available:</strong><br>
+                ${services}<br><br>
+                
+                <strong>Important Deadlines:</strong><br>
+                • FAFSA: ${campusDatabase.administrative.financial_aid.deadlines.fafsa}<br>
+                • Scholarships: ${campusDatabase.administrative.financial_aid.deadlines.scholarships}`;
+            }
+            
+            // Student services queries
+            if (msgLower.includes('student services') || msgLower.includes('support') || msgLower.includes('counseling') || msgLower.includes('help')) {
+                return `🎓 <strong>Student Services:</strong><br><br>
+                • <strong>Counseling Center:</strong> ${campusDatabase.administrative.student_services.counseling}<br>
+                • <strong>Career Center:</strong> ${campusDatabase.administrative.student_services.career_center}<br>
+                • <strong>Disability Services:</strong> ${campusDatabase.administrative.student_services.disability_services}<br>
+                • <strong>Health Center:</strong> ${campusDatabase.administrative.student_services.health_center}<br>
+                • <strong>Tutoring Services:</strong> ${campusDatabase.administrative.student_services.tutoring}<br><br>
+                
+                Need specific information about any of these services? Just ask!`;
+            }
+            
+            // Map/directions queries
+            if (msgLower.includes('map') || msgLower.includes('direction') || msgLower.includes('navigate')) {
+                return `🗺 <strong>Campus Navigation:</strong><br><br>
+                The campus is organized in four main quadrants:<br><br>
+                
+                <strong>North Quad:</strong> Science buildings, Main Library<br>
+                <strong>South Quad:</strong> Liberal Arts, Student Union<br>
+                <strong>East Quad:</strong> Business Center, Administration<br>
+                <strong>West Quad:</strong> Engineering, Recreation facilities<br><br>
+                
+                <strong>Getting Around:</strong><br>
+                • Free campus shuttle runs every 15 minutes<br>
+                • Bike sharing stations at major buildings<br>
+                • Interactive maps available at campus kiosks<br>
+                • Campus safety escorts available 24/7<br><br>
+                
+                Need directions to a specific building? Just ask!`;
+            }
+            
+            // Default response with suggestions
+            return `I'd be happy to help! I can provide information about:<br><br>
+            
+            📅 <strong>Academics:</strong> Class schedules, registration, academic calendar<br>
+            🏢 <strong>Facilities:</strong> Building locations, campus map, services<br>
+            🍽 <strong>Dining:</strong> Meal plans, dining hours, food options<br>
+            📚 <strong>Library:</strong> Hours, services, study spaces<br>
+            📝 <strong>Administration:</strong> Registration, financial aid, student services<br><br>
+            
+            What specific information would you like to know about? You can also use the quick buttons on the left for common questions!`;
+        }
+
+        // Initialize chat
+        document.addEventListener('DOMContentLoaded', function() {
+            const messageInput = document.getElementById('messageInput');
+            messageInput.focus();
+        });
+    </script>
+</body>
+</html>
